@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTheme, type Theme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useGetCart } from '../api';
+import PWABanner from './PWABanner';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -21,6 +22,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-[#0b0c10]/80 border-b border-gray-200/50 dark:border-gray-800/50 transition-theme">
+      <PWABanner />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
 
         {/* Logo */}
@@ -59,7 +61,7 @@ export default function Header() {
         <div className="flex items-center gap-2">
 
           {/* Theme Toggle */}
-          <div className="hidden sm:flex bg-gray-100 dark:bg-gray-800 p-1 rounded-full gap-0.5 border border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-full gap-0.5 border border-gray-200/50 dark:border-gray-700/50">
             {(['light', 'dark', 'system'] as Theme[]).map((t) => {
               const isActive = theme === t;
               return (

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Header from './shared/components/Header';
 import MobileNav from './shared/components/MobileNav';
@@ -24,6 +25,12 @@ import UsersAdminPage from './pages/admin/UsersAdminPage';
 import Footer from './shared/components/Footer';
 import { useAuth } from './shared/context/AuthContext';
 import type { User } from './shared/api';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }); }, [pathname]);
+  return null;
+}
 
 function getPostLoginPath(user: User | null, from?: string) {
   if (user?.role === 'SUPER_ADMIN') {
@@ -95,6 +102,7 @@ export default function App() {
       <div className="min-h-screen mesh-gradient flex flex-col font-sans transition-theme pb-16 md:pb-0">
         <Header />
         <main className="flex-1">
+          <ScrollToTop />
           <AppRoutes />
         </main>
         <MobileNav />

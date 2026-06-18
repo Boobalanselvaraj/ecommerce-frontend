@@ -415,11 +415,7 @@ export default function AuthPage({ onSuccess }: { onSuccess?: (user: User | null
                     label="Password" id="password" type="password" placeholder="••••••••"
                     value={formData.password} onChange={handleChange}
                     autoComplete="current-password" required
-                    rightLabel={
-                      <button type="button" className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
-                        Forgot password?
-                      </button>
-                    }
+                    
                   />
                   <SubmitButton loading={isPending} label="Sign In" />
                   <p className="text-center text-sm text-gray-600 dark:text-gray-500 mt-5">
