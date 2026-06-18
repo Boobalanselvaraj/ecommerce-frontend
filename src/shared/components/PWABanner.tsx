@@ -11,34 +11,35 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function PWABanner() {
-  const [isVisible, setIsVisible] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isIOS, setIsIOS] = useState(false);
-  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-
-  useEffect(() => {
-    // 1. Check if already installed / running in standalone mode
+  const [isIOS] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  });
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof window === 'undefined') return false;
     const isStandalone = 
       window.matchMedia('(display-mode: standalone)').matches || 
       (navigator as any).standalone === true;
+    if (isStandalone) return false;
 
-    if (isStandalone) return;
-
-    // 2. Check if dismissed before
     const isDismissed = localStorage.getItem('pwa-prompt-dismissed') === 'true';
-    if (isDismissed) return;
+    if (isDismissed) return false;
 
-    // 3. Detect iOS
+    if (isIOS) return true;
+
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const ios = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(ios);
+    const isMobile = /android|webos|blackberry|iemobile|opera mini/i.test(userAgent);
+    if (isMobile) return true;
 
-    if (ios) {
-      setIsVisible(true);
-      return;
-    }
+    return false;
+  });
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
-    // 4. Listen for beforeinstallprompt event on other platforms
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Listen for beforeinstallprompt event on other platforms
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -46,13 +47,6 @@ export default function PWABanner() {
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Fallback: If we're on a mobile device and beforeinstallprompt doesn't fire immediately,
-    // we still show the install button. Clicking it will prompt if available, or show instructions.
-    const isMobile = /android|webos|blackberry|iemobile|opera mini/i.test(userAgent);
-    if (isMobile && !ios) {
-      setIsVisible(true);
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

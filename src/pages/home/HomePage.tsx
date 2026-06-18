@@ -30,8 +30,10 @@ export default function HomePage() {
   // Sync search param from URL
   useEffect(() => {
     const q = searchParams.get('search') ?? '';
-    setSearchInput(q);
-    setFilters(f => ({ ...f, search: q || undefined, page: 1 }));
+    Promise.resolve().then(() => {
+      setSearchInput(q);
+      setFilters(f => ({ ...f, search: q || undefined, page: 1 }));
+    });
   }, [searchParams]);
 
   const applyFilter = (patch: Partial<ProductFilters>) =>

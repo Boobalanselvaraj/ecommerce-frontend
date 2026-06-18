@@ -26,7 +26,10 @@ export default function Select({
   isClearable = false,
 }: SelectProps) {
   // Find current selected option
-  const selectedOption = options.find(opt => opt.value === value) || null;
+  const selectedOption = options.find(opt => {
+    if (value === undefined || value === null) return false;
+    return String(opt.value) === String(value);
+  }) || null;
 
   // React select custom styles to match light/dark theme perfectly
   const customStyles: StylesConfig<OptionType, false, GroupBase<OptionType>> = {

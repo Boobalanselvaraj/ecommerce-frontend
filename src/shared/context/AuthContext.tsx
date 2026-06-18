@@ -45,7 +45,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Hydrate session on mount (cookie or stored token)
   React.useEffect(() => {
-    establishSession().finally(() => setIsLoading(false));
+    const initSession = async () => {
+      try {
+        await establishSession();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initSession();
   }, [establishSession]);
 
   const login = useCallback((token: string, userData: User) => {
