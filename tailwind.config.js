@@ -25,6 +25,10 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
+      animation: {
+        'hero-orb1': 'hero-orb1 8s ease-in-out infinite',
+        'hero-orb2': 'hero-orb2 6s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

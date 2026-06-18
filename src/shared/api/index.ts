@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, type UseQueryOptions, type UseMutationOptions } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseQueryOptions, type UseMutationOptions, keepPreviousData } from '@tanstack/react-query';
 import { api, ApiError } from './client';
 export * from './client';
 
@@ -354,7 +354,10 @@ export const useGetProducts = (filters?: ProductFilters, options?: any) => {
   return useApiGET<ProductsResponse>(
     ['PRODUCTS', filters],
     `/product${qs ? `?${qs}` : ''}`,
-    options
+    {
+      placeholderData: keepPreviousData,
+      ...options,
+    }
   );
 };
 

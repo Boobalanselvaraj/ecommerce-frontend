@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetProduct, useGetProductReviews, useAddToCart, useAddToWishlist } from '../../shared/api';
 import { useAuth } from '../../shared/context/AuthContext';
@@ -15,6 +15,19 @@ export default function ProductDetailPage() {
   const { toast } = useToast();
   const [selectedImg, setSelectedImg] = useState(0);
   const [qty, setQty] = useState(1);
+  const [zoom, setZoom] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const imgContainerRef = useRef<HTMLDivElement>(null);
+  const autoSlideRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isHoveringCarousel, setIsHoveringCarousel] = useState(false);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = imgContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPos({ x: Math.min(100, Math.max(0, x)), y: Math.min(100, Math.max(0, y)) });
+  }, []);
 
   const { data: productData, isLoading } = useGetProduct(Number(id));
   const { data: reviewData } = useGetProductReviews(Number(id));
@@ -23,6 +36,22 @@ export default function ProductDetailPage() {
 
   const product = productData?.data;
   const reviews = reviewData?.data ?? [];
+  const images = product?.images ?? [];
+
+  const goNext = useCallback(() => {
+    setSelectedImg(i => (i + 1) % (images.length || 1));
+  }, [images.length]);
+
+  const goPrev = useCallback(() => {
+    setSelectedImg(i => (i - 1 + (images.length || 1)) % (images.length || 1));
+  }, [images.length]);
+
+  // Auto-slide every 5 seconds, pause on hover
+  useEffect(() => {
+    if (images.length <= 1 || isHoveringCarousel) return;
+    autoSlideRef.current = setInterval(goNext, 5000);
+    return () => { if (autoSlideRef.current) clearInterval(autoSlideRef.current); };
+  }, [images.length, isHoveringCarousel, goNext]);
 
   if (isLoading) return <PageLoader />;
   if (!product) return (
@@ -32,7 +61,6 @@ export default function ProductDetailPage() {
     </div>
   );
 
-  const images = product.images ?? [];
   const isOutOfStock = product.availableQuantity === 0;
 
   const handleAddToCart = () => {
@@ -65,27 +93,133 @@ export default function ProductDetailPage() {
         Back
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
-        {/* Image Gallery */}
-        <div className="space-y-3">
-          <div className="aspect-square rounded-3xl bg-gray-100 dark:bg-gray-900 overflow-hidden border border-gray-200 dark:border-gray-800">
-            {images.length > 0 ? (
-              <img src={images[selectedImg]?.imgUrl} alt={product.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-700">
-                <svg className="w-24 h-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12 overflow-visible">
+        {/* Image Gallery — Carousel */}
+        <div
+          className="space-y-3"
+          onMouseEnter={() => setIsHoveringCarousel(true)}
+          onMouseLeave={() => setIsHoveringCarousel(false)}
+        >
+          {/* Main Carousel */}
+          <div className="relative">
+            {/* Image container — stacked fade approach */}
+            <div
+              ref={imgContainerRef}
+              className="aspect-square rounded-3xl bg-gray-100 dark:bg-gray-900 overflow-hidden border border-gray-200 dark:border-gray-800 relative"
+              onMouseEnter={() => setZoom(true)}
+              onMouseLeave={() => setZoom(false)}
+              onMouseMove={handleMouseMove}
+              style={{ cursor: zoom ? 'crosshair' : 'default' }}
+            >
+              {images.length > 0 ? (
+                <>
+                  {images.map((img, i) => (
+                    <div
+                      key={img.id}
+                      className={`absolute inset-0 transition-opacity duration-500 ${i === selectedImg ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    >
+                      <img
+                        src={img.imgUrl}
+                        alt={product.name}
+                        className={`w-full h-full object-cover transition-transform duration-200 ${zoom && i === selectedImg ? 'scale-105' : 'scale-100'}`}
+                      />
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-700">
+                  <svg className="w-24 h-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Lens overlay — only show when not clicking arrows */}
+              {zoom && images.length > 0 && (
+                <div
+                  className="pointer-events-none absolute z-20 w-24 h-24 border-2 border-white/70 rounded-sm shadow-lg"
+                  style={{
+                    left: `calc(${zoomPos.x}% - 48px)`,
+                    top: `calc(${zoomPos.y}% - 48px)`,
+                    background: 'rgba(255,255,255,0.15)',
+                    backdropFilter: 'blur(1px)',
+                  }}
+                />
+              )}
+
+              {/* Arrow buttons — clicking disables zoom */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setZoom(false); goPrev(); }}
+                    onMouseEnter={() => setZoom(false)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm border border-gray-200 dark:border-gray-700 flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-gray-800 transition-all active:scale-90"
+                  >
+                    <svg className="w-4 h-4 text-gray-700 dark:text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setZoom(false); goNext(); }}
+                    onMouseEnter={() => setZoom(false)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm border border-gray-200 dark:border-gray-700 flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-gray-800 transition-all active:scale-90"
+                  >
+                    <svg className="w-4 h-4 text-gray-700 dark:text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </>
+              )}
+
+              {/* Dot indicators */}
+              {images.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setZoom(false); setSelectedImg(i); }}
+                      className={`rounded-full transition-all ${
+                        i === selectedImg ? 'w-5 h-2 bg-brand-500' : 'w-2 h-2 bg-white/60 hover:bg-white'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Image counter badge */}
+              {images.length > 1 && (
+                <div className="absolute top-3 right-3 z-30 bg-black/50 text-white text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                  {selectedImg + 1} / {images.length}
+                </div>
+              )}
+            </div>
+
+            {/* Zoom Preview Panel — right side on desktop */}
+            {zoom && images.length > 0 && (
+              <div
+                className="hidden lg:block absolute top-0 left-[calc(100%+16px)] w-[420px] h-[420px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-2xl z-30 pointer-events-none bg-white dark:bg-gray-900"
+                style={{
+                  backgroundImage: `url(${images[selectedImg]?.imgUrl})`,
+                  backgroundSize: '250%',
+                  backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
             )}
           </div>
+
+          {/* Thumbnail strip */}
           {images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {images.map((img, i) => (
                 <button
                   key={img.id}
                   onClick={() => setSelectedImg(i)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selectedImg === i ? 'border-brand-500 shadow-md shadow-brand-500/30' : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`}
+                  className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                    selectedImg === i
+                      ? 'border-brand-500 shadow-md shadow-brand-500/30 scale-105'
+                      : 'border-transparent opacity-60 hover:opacity-100 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
                 >
                   <img src={img.imgUrl} alt="" className="w-full h-full object-cover" />
                 </button>

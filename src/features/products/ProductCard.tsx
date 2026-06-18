@@ -40,7 +40,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Link to={`/products/${product.id}`} className="group block">
+    <Link to={`/products/${product.id}`} className="group flex flex-col h-full">
       <div className="bg-white dark:bg-[#13141c] rounded-2xl border border-gray-100 dark:border-gray-800/60 overflow-hidden hover-lift transition-theme flex flex-col h-full">
         {/* Image */}
         <div className="relative aspect-[4/3] bg-gray-100 dark:bg-gray-900 overflow-hidden">
@@ -85,7 +85,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Content */}
         <div className="p-4 flex flex-col flex-1">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors mb-1">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors mb-1">
             {product.name}
           </h3>
 
@@ -94,7 +94,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <span className="text-xs text-gray-400">({(product.review ?? 0).toFixed(1)})</span>
           </div>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 flex-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-4">
             {product.description}
           </p>
 
